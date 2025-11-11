@@ -57,15 +57,26 @@ function updateSummaryCards(vehicles, reservations) {
 function updateTodayReservations(reservations, vehicles) {
     const today = normalizeDate(new Date());
     
-    console.log('今日の日付:', today); // デバッグ用
+    console.log('今日の日付:', today);
+    console.log('全予約データ:', reservations); // 全データを確認
+    
+    // 各予約の日付を詳しく確認
+    reservations.forEach((r, index) => {
+        console.log(`予約${index + 1}:`, {
+            originalDate: r.date,
+            dateType: typeof r.date,
+            normalizedDate: normalizeDate(r.date),
+            status: r.status
+        });
+    });
     
     const todayReservations = reservations.filter(r => {
         const resDate = normalizeDate(r.date);
-        console.log('予約日付:', resDate, '一致:', resDate === today); // デバッグ用
+        console.log('予約日付:', resDate, '一致:', resDate === today);
         return resDate === today && r.status !== 'キャンセル';
     });
     
-    console.log('本日の予約数:', todayReservations.length); // デバッグ用
+    console.log('本日の予約数:', todayReservations.length);
     
     const tbody = document.getElementById('todayReservationsTable');
     
