@@ -88,6 +88,8 @@ function displayReservations(reservations) {
     
     listDiv.innerHTML = reservations.map(res => {
         const vehicle = allVehicles.find(v => v.id === res.vehicleId);
+        if (!vehicle) return '';
+        
         const statusColor = getReservationStatusColor(res.status);
         const vehicleColor = getVehicleTypeColor(vehicle.type);
         
@@ -117,9 +119,6 @@ function displayReservations(reservations) {
                         </div>
                         <div>
                             ${res.status === '予約中' ? `
-                                <button class="btn btn-sm btn-outline-primary mb-1" onclick="editReservation(${res.id})">
-                                    <i class="fas fa-edit"></i>
-                                </button>
                                 <button class="btn btn-sm btn-outline-danger" onclick="deleteReservation(${res.id})">
                                     <i class="fas fa-trash"></i>
                                 </button>
@@ -182,6 +181,29 @@ async function updateAvailableVehicles() {
     }
 }
 
+// 予約重複チェック（詳細版）
+async function checkReservationConflict(vehicleId, date, startTime, endTime) {
+    try {
+        const formattedDate = date.replace(/-/g, '/');
+        const result = await apiGet('getReservations', { date: formattedDate });
+        
+        if (!result.success) return false;
+        
+        const conflicts = result.data.filter(res => {
+            if (res.vehicleId !== vehicleId) return false;
+            if (res.status === 'キャンセル') return false;
+            
+            // 時間重複チェック
+            return !(endTime <= res.startTime || startTime >= res.endTime);
+        });
+        
+        return conflicts.length > 0;
+    } catch (error) {
+        console.error('Conflict check error:', error);
+        return false;
+    }
+}
+
 // フォーム送信処理
 async function handleFormSubmit(e) {
     e.preventDefault();
@@ -206,23 +228,26 @@ async function handleFormSubmit(e) {
     
     // 定員チェック
     const selectedVehicle = allVehicles.find(v => v.id === formData.vehicleId);
+    if (!selectedVehicle) {
+        showAlert('車両が選択されていません', 'danger');
+        return;
+    }
+    
     if (formData.passengers > selectedVehicle.capacity) {
         showAlert(`乗車人員が定員（${selectedVehicle.capacity}名）を超えています`, 'danger');
         return;
     }
     
-    // 重複チェック
-    const isDuplicate = currentReservations.some(res => {
-        if (res.vehicleId !== formData.vehicleId) return false;
-        if (res.status === 'キャンセル') return false;
-        if (res.date !== formData.date) return false;
-        
-        // 時間重複チェック
-        return !(formData.endTime <= res.startTime || formData.startTime >= res.endTime);
-    });
+    // サーバー側で重複チェック
+    const hasConflict = await checkReservationConflict(
+        formData.vehicleId, 
+        formData.date, 
+        formData.startTime, 
+        formData.endTime
+    );
     
-    if (isDuplicate) {
-        showAlert('選択した時間帯は既に予約されています', 'danger');
+    if (hasConflict) {
+        showAlert('選択した車両・時間帯は既に予約されています', 'danger');
         return;
     }
     
@@ -239,7 +264,7 @@ async function handleFormSubmit(e) {
             document.getElementById('selectedDate').value = formData.date.replace(/\//g, '-');
             await searchReservations();
         } else {
-            showAlert('予約の登録に失敗しました', 'danger');
+            showAlert(result.error || '予約の登録に失敗しました', 'danger');
         }
     } catch (error) {
         console.error('Reservation create error:', error);
