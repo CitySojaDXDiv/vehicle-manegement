@@ -11,7 +11,7 @@ async function loadDashboard() {
         const [vehicles, reservations, drivingRecords] = await Promise.all([
             apiGet('getVehicles'),
             apiGet('getReservations'),
-            apiGet('getDrivingRecords') // 追加
+            apiGet('getDrivingRecords')
         ]);
         
         if (vehicles.success && reservations.success) {
@@ -20,7 +20,7 @@ async function loadDashboard() {
             createCharts(vehicles.data, reservations.data);
             checkMaintenanceAlerts(vehicles.data);
             
-            // 運行記録表示を追加
+            // 運行記録表示
             if (drivingRecords.success) {
                 updateRecentDrivingRecords(drivingRecords.data, vehicles.data);
             }
@@ -33,7 +33,66 @@ async function loadDashboard() {
     }
 }
 
-// 直近の運行記録表示（新規追加）
+// サマリーカード更新
+function updateSummaryCards(vehicles, reservations) {
+    // 総車両数
+    document.getElementById('totalVehicles').textContent = vehicles.length;
+    
+    // 本日の予約
+    const today = normalizeDate(new Date());
+    const todayReservations = reservations.filter(r => {
+        const resDate = normalizeDate(r.date);
+        return resDate === today && r.status !== 'キャンセル';
+    });
+    document.getElementById('todayReservations').textContent = todayReservations.length;
+    
+    // 今月の走行距離（ダミーデータ）
+    document.getElementById('monthlyDistance').textContent = '1,234';
+    
+    // 平均燃費（ダミーデータ）
+    document.getElementById('avgFuelEfficiency').textContent = '12.5';
+}
+
+// 本日の予約一覧
+function updateTodayReservations(reservations, vehicles) {
+    const today = normalizeDate(new Date());
+    
+    console.log('今日の日付:', today); // デバッグ用
+    
+    const todayReservations = reservations.filter(r => {
+        const resDate = normalizeDate(r.date);
+        console.log('予約日付:', resDate, '一致:', resDate === today); // デバッグ用
+        return resDate === today && r.status !== 'キャンセル';
+    });
+    
+    console.log('本日の予約数:', todayReservations.length); // デバッグ用
+    
+    const tbody = document.getElementById('todayReservationsTable');
+    
+    if (todayReservations.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">本日の予約はありません</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = todayReservations.map(res => {
+        const vehicle = vehicles.find(v => v.id === res.vehicleId);
+        if (!vehicle) return '';
+        
+        const startTime = normalizeTime(res.startTime);
+        const endTime = normalizeTime(res.endTime);
+        
+        return `
+            <tr>
+                <td><span class="badge" style="background-color: ${getVehicleTypeColor(vehicle.type)}">${vehicle.number}</span></td>
+                <td>${startTime} - ${endTime}</td>
+                <td>${res.userName}</td>
+                <td>${res.destination}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// 直近の運行記録表示
 function updateRecentDrivingRecords(records, vehicles) {
     const tbody = document.getElementById('recentDrivingRecordsTable');
     
@@ -47,62 +106,14 @@ function updateRecentDrivingRecords(records, vehicles) {
     
     tbody.innerHTML = recentRecords.map(record => {
         const vehicle = vehicles.find(v => v.id === record.vehicleId);
-        return `
-            <tr>
-                <td>${record.date}</td>
-                <td><span class="badge" style="background-color: ${getVehicleTypeColor(vehicle.type)}">${vehicle.number}</span></td>
-                <td>${record.distance || 0} km</td>
-                <td>${record.driverName}</td>
-            </tr>
-        `;
-    }).join('');
-}
-
-// サマリーカード更新
-function updateSummaryCards(vehicles, reservations) {
-    // 総車両数
-    document.getElementById('totalVehicles').textContent = vehicles.length;
-    
-    // 本日の予約
-    const today = formatDate(new Date());
-    const todayReservations = reservations.filter(r => 
-        formatDate(r.date) === today && r.status !== 'キャンセル'
-    );
-    document.getElementById('todayReservations').textContent = todayReservations.length;
-    
-    // 今月の走行距離（ダミーデータ）
-    document.getElementById('monthlyDistance').textContent = '1,234';
-    
-    // 平均燃費（ダミーデータ）
-    document.getElementById('avgFuelEfficiency').textContent = '12.5';
-}
-
-// 本日の予約一覧
-function updateTodayReservations(reservations, vehicles) {
-    const today = formatDate(new Date());
-    const todayReservations = reservations.filter(r => 
-        r.date === today && r.status !== 'キャンセル'
-    );
-    
-    const tbody = document.getElementById('todayReservationsTable');
-    
-    if (todayReservations.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">本日の予約はありません</td></tr>';
-        return;
-    }
-    
-    tbody.innerHTML = todayReservations.map(res => {
-        const vehicle = vehicles.find(v => v.id === res.vehicleId);
-        // 時刻フォーマット修正
-        const startTime = typeof res.startTime === 'string' ? res.startTime : formatTime(res.startTime);
-        const endTime = typeof res.endTime === 'string' ? res.endTime : formatTime(res.endTime);
+        if (!vehicle) return '';
         
         return `
             <tr>
+                <td>${normalizeDate(record.date)}</td>
                 <td><span class="badge" style="background-color: ${getVehicleTypeColor(vehicle.type)}">${vehicle.number}</span></td>
-                <td>${startTime} - ${endTime}</td>
-                <td>${res.userName}</td>
-                <td>${res.destination}</td>
+                <td>${record.distance || 0} km</td>
+                <td>${record.driverName}</td>
             </tr>
         `;
     }).join('');
@@ -193,27 +204,31 @@ function checkMaintenanceAlerts(vehicles) {
     
     vehicles.forEach(vehicle => {
         // 車検期限チェック
-        const inspectionDate = new Date(vehicle.inspectionDate);
-        if (inspectionDate <= thirtyDaysLater) {
-            const daysLeft = Math.ceil((inspectionDate - today) / (1000 * 60 * 60 * 24));
-            alerts.push({
-                type: '車検',
-                vehicle: vehicle.number,
-                date: formatDate(inspectionDate),
-                daysLeft: daysLeft
-            });
+        if (vehicle.inspectionDate) {
+            const inspectionDate = new Date(vehicle.inspectionDate);
+            if (!isNaN(inspectionDate.getTime()) && inspectionDate <= thirtyDaysLater && inspectionDate >= today) {
+                const daysLeft = Math.ceil((inspectionDate - today) / (1000 * 60 * 60 * 24));
+                alerts.push({
+                    type: '車検',
+                    vehicle: vehicle.number,
+                    date: normalizeDate(vehicle.inspectionDate),
+                    daysLeft: daysLeft
+                });
+            }
         }
         
         // 点検期限チェック
-        const maintenanceDate = new Date(vehicle.maintenanceDate);
-        if (maintenanceDate <= thirtyDaysLater) {
-            const daysLeft = Math.ceil((maintenanceDate - today) / (1000 * 60 * 60 * 24));
-            alerts.push({
-                type: '点検',
-                vehicle: vehicle.number,
-                date: formatDate(maintenanceDate),
-                daysLeft: daysLeft
-            });
+        if (vehicle.maintenanceDate) {
+            const maintenanceDate = new Date(vehicle.maintenanceDate);
+            if (!isNaN(maintenanceDate.getTime()) && maintenanceDate <= thirtyDaysLater && maintenanceDate >= today) {
+                const daysLeft = Math.ceil((maintenanceDate - today) / (1000 * 60 * 60 * 24));
+                alerts.push({
+                    type: '点検',
+                    vehicle: vehicle.number,
+                    date: normalizeDate(vehicle.maintenanceDate),
+                    daysLeft: daysLeft
+                });
+            }
         }
     });
     

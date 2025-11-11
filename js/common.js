@@ -1,4 +1,4 @@
-// API呼び出し（GET）
+// API呼び出し(GET)
 async function apiGet(action, params = {}) {
     try {
         const url = new URL(GAS_API_URL);
@@ -81,7 +81,10 @@ function hideLoading() {
 
 // 日付フォーマット（YYYY/MM/DD）
 function formatDate(date) {
+    if (!date) return '';
     const d = new Date(date);
+    if (isNaN(d.getTime())) return '';
+    
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
@@ -90,8 +93,12 @@ function formatDate(date) {
 
 // 時刻フォーマット（HH:MM）
 function formatTime(time) {
-    if (typeof time === 'string') return time;
+    if (!time) return '';
+    if (typeof time === 'string' && /^\d{2}:\d{2}$/.test(time)) return time;
+    
     const d = new Date(time);
+    if (isNaN(d.getTime())) return '';
+    
     const hours = String(d.getHours()).padStart(2, '0');
     const minutes = String(d.getMinutes()).padStart(2, '0');
     return `${hours}:${minutes}`;
@@ -124,4 +131,35 @@ function getReservationStatusColor(status) {
         'キャンセル': '#95A5A6'
     };
     return colors[status] || '#95A5A6';
+}
+
+// 日付比較用の正規化（YYYY/MM/DD形式に統一）
+function normalizeDate(date) {
+    if (!date) return '';
+    
+    // 既にYYYY/MM/DD形式の場合
+    if (typeof date === 'string' && /^\d{4}\/\d{2}\/\d{2}$/.test(date)) {
+        return date;
+    }
+    
+    // YYYY-MM-DD形式の場合
+    if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return date.replace(/-/g, '/');
+    }
+    
+    // Date型の場合
+    return formatDate(date);
+}
+
+// 時刻の正規化（HH:MM形式に統一）
+function normalizeTime(time) {
+    if (!time) return '';
+    
+    // 既にHH:MM形式の場合
+    if (typeof time === 'string' && /^\d{2}:\d{2}$/.test(time)) {
+        return time;
+    }
+    
+    // Date型の場合
+    return formatTime(time);
 }

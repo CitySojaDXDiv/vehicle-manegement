@@ -51,12 +51,18 @@ async function searchReservations() {
     
     try {
         // 日付フォーマットを統一（YYYY/MM/DD）
-        const formattedDate = selectedDate.replace(/-/g, '/');
+        const formattedDate = normalizeDate(selectedDate);
+        
+        console.log('検索日付:', formattedDate); // デバッグ用
         
         const result = await apiGet('getReservations', { date: formattedDate });
         
+        console.log('API結果:', result); // デバッグ用
+        
         if (result.success) {
             currentReservations = result.data;
+            
+            console.log('取得した予約数:', currentReservations.length); // デバッグ用
             
             // 車両種別でフィルタ
             let filteredReservations = currentReservations;
@@ -68,6 +74,8 @@ async function searchReservations() {
             }
             
             displayReservations(filteredReservations);
+        } else {
+            showAlert('予約の取得に失敗しました', 'danger');
         }
     } catch (error) {
         console.error('Reservation search error:', error);
@@ -88,10 +96,15 @@ function displayReservations(reservations) {
     
     listDiv.innerHTML = reservations.map(res => {
         const vehicle = allVehicles.find(v => v.id === res.vehicleId);
-        if (!vehicle) return '';
+        if (!vehicle) {
+            console.warn('車両が見つかりません:', res.vehicleId);
+            return '';
+        }
         
         const statusColor = getReservationStatusColor(res.status);
         const vehicleColor = getVehicleTypeColor(vehicle.type);
+        const startTime = normalizeTime(res.startTime);
+        const endTime = normalizeTime(res.endTime);
         
         return `
             <div class="card mb-2">
@@ -107,7 +120,7 @@ function displayReservations(reservations) {
                                 </span>
                             </h6>
                             <p class="mb-1">
-                                <i class="fas fa-clock text-muted"></i> ${res.startTime} - ${res.endTime}
+                                <i class="fas fa-clock text-muted"></i> ${startTime} - ${endTime}
                             </p>
                             <p class="mb-1">
                                 <i class="fas fa-user text-muted"></i> ${res.userName} (${res.department})
@@ -149,8 +162,10 @@ async function updateAvailableVehicles() {
     showLoading();
     
     try {
+        const formattedDate = normalizeDate(date);
+        
         const result = await apiGet('getAvailableVehicles', {
-            date: date,
+            date: formattedDate,
             startTime: startTime,
             endTime: endTime
         });
@@ -181,10 +196,10 @@ async function updateAvailableVehicles() {
     }
 }
 
-// 予約重複チェック（詳細版）
+// 予約重複チェック
 async function checkReservationConflict(vehicleId, date, startTime, endTime) {
     try {
-        const formattedDate = date.replace(/-/g, '/');
+        const formattedDate = normalizeDate(date);
         const result = await apiGet('getReservations', { date: formattedDate });
         
         if (!result.success) return false;
@@ -210,7 +225,7 @@ async function handleFormSubmit(e) {
     
     const formData = {
         vehicleId: parseInt(document.getElementById('vehicleSelect').value),
-        date: document.getElementById('reservationDate').value.replace(/-/g, '/'),
+        date: normalizeDate(document.getElementById('reservationDate').value),
         startTime: document.getElementById('startTime').value,
         endTime: document.getElementById('endTime').value,
         userName: document.getElementById('userName').value,
@@ -313,7 +328,7 @@ async function deleteReservation(id) {
         
         if (result.success) {
             showAlert('予約を削除しました', 'success');
-            searchReservations();
+            await searchReservations();
         } else {
             showAlert('予約の削除に失敗しました', 'danger');
         }
