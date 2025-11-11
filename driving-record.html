@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>運行記録 - 車両予約運行管理システム</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- ナビゲーションバー -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="index.html">
+                <i class="fas fa-car"></i> 車両管理システム
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">
+                            <i class="fas fa-chart-line"></i> ダッシュボード
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="reservation.html">
+                            <i class="fas fa-calendar-check"></i> 予約管理
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="driving-record.html">
+                            <i class="fas fa-clipboard-list"></i> 運行記録
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="vehicle-master.html">
+                            <i class="fas fa-car-side"></i> 車両マスタ
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- メインコンテンツ -->
+    <div class="container-fluid mt-4">
+        <!-- タブ切り替え -->
+        <ul class="nav nav-tabs mb-3" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#departure" type="button">
+                    <i class="fas fa-play-circle"></i> 出発時入力
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#arrival" type="button">
+                    <i class="fas fa-stop-circle"></i> 帰着時入力
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#history" type="button">
+                    <i class="fas fa-history"></i> 運行履歴
+                </button>
+            </li>
+        </ul>
+
+        <!-- タブコンテンツ -->
+        <div class="tab-content">
+            <!-- 出発時入力 -->
+            <div class="tab-pane fade show active" id="departure">
+                <div class="row">
+                    <div class="col-lg-8 mx-auto">
+                        <div class="card">
+                            <div class="card-header bg-success text-white">
+                                <i class="fas fa-play-circle"></i> 出発時入力
+                            </div>
+                            <div class="card-body">
+                                <form id="departureForm">
+                                    <!-- 基本情報 -->
+                                    <h5 class="border-bottom pb-2 mb-3">基本情報</h5>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">車両選択 <span class="text-danger">*</span></label>
+                                            <select class="form-select" id="depVehicle" required>
+                                                <option value="">選択してください</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">日付 <span class="text-danger">*</span></label>
+                                            <input type="date" class="form-control" id="depDate" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-4">
+                                            <label class="form-label">天気 <span class="text-danger">*</span></label>
+                                            <select class="form-select" id="depWeather" required>
+                                                <option value="">選択</option>
+                                                <option value="晴">晴</option>
+                                                <option value="曇">曇</option>
+                                                <option value="雨">雨</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">車両状況 <span class="text-danger">*</span></label>
+                                            <select class="form-select" id="depCondition" required>
+                                                <option value="">選択</option>
+                                                <option value="良">良</option>
+                                                <option value="不良">不良</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">出発時刻 <span class="text-danger">*</span></label>
+                                            <input type="time" class="form-control" id="depTime" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 運転情報 -->
+                                    <h5 class="border-bottom pb-2 mb-3 mt-4">運転情報</h5>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">行先 <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" id="depDestination" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">始業時メーター (km) <span class="text-danger">*</span></label>
+                                            <input type="number" class="form-control" id="depStartMeter" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">用務 <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" id="depPurpose" required>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">乗車人員 <span class="text-danger">*</span></label>
+                                            <input type="number" class="form-control" id="depPassengers" min="1" required>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">運転者氏名 <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" id="depDriver" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 運転前酒気帯び確認 -->
+                                    <h5 class="border-bottom pb-2 mb-3 mt-4">
+                                        <i class="fas fa-exclamation-triangle text-warning"></i> 運転前 酒気帯び確認
+                                    </h5>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">確認者区分 <span class="text-danger">*</span></label>
+                                            <select class="form-select" id="depBeforeCheckerType" required>
+                                                <option value="">選択してください</option>
+                                                <option value="安全運転管理者">安全運転管理者</option>
+                                                <option value="副安全運転管理者">副安全運転管理者</option>
+                                                <option value="運行管理者">運行管理者</option>
+                                                <option value="上記以外">上記以外</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">確認者氏名 <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" id="depBeforeCheckerName" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-4">
+                                            <label class="form-label">確認方法 <span class="text-danger">*</span></label>
+                                            <select class="form-select" id="depBeforeCheckMethod" required>
+                                                <option value="">選択</option>
+                                                <option value="対面">対面</option>
+                                                <option value="電話等">電話等</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">酒気帯びの有無 <span class="text-danger">*</span></label>
+                                            <select class="form-select" id="depBeforeAlcoholPresence" required>
+                                                <option value="">選択</option>
+                                                <option value="無">無</option>
+                                                <option value="有">有</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">検知器数値 (mg/l) <span class="text-danger">*</span></label>
+                                            <input type="number" class="form-control" id="depBeforeAlcoholValue" step="0.01" min="0" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="d-grid">
+                                        <button type="submit" class="btn btn-success btn-lg">
+                                            <i class="fas fa-save"></i> 出発記録を登録
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 帰着時入力 -->
+            <div class="tab-pane fade" id="arrival">
+                <div class="row">
+                    <div class="col-lg-8 mx-auto">
+                        <div class="card">
+                            <div class="card-header bg-danger text-white">
+                                <i class="fas fa-stop-circle"></i> 帰着時入力
+                            </div>
+                            <div class="card-body">
+                                <form id="arrivalForm">
+                                    <!-- 基本情報 -->
+                                    <h5 class="border-bottom pb-2 mb-3">基本情報</h5>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">車両選択 <span class="text-danger">*</span></label>
+                                            <select class="form-select" id="arrVehicle" required>
+                                                <option value="">選択してください</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">帰着時刻 <span class="text-danger">*</span></label>
+                                            <input type="time" class="form-control" id="arrTime" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">終業時メーター (km) <span class="text-danger">*</span></label>
+                                            <input type="number" class="form-control" id="arrEndMeter" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">走行距離 (km)</label>
+                                            <input type="text" class="form-control" id="arrDistance" readonly>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 給油情報 -->
+                                    <h5 class="border-bottom pb-2 mb-3 mt-4">給油情報</h5>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-3">
+                                            <label class="form-label">ガソリン (L)</label>
+                                            <input type="number" class="form-control" id="arrGasoline" step="0.1" min="0" value="0">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">軽油 (L)</label>
+                                            <input type="number" class="form-control" id="arrDiesel" step="0.1" min="0" value="0">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">オイル (L)</label>
+                                            <input type="number" class="form-control" id="arrOil" step="0.1" min="0" value="0">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-check mt-4">
+                                                <input class="form-check-input" type="checkbox" id="arrNoRefuel">
+                                                <label class="form-check-label" for="arrNoRefuel">
+                                                    給油なし
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">燃料残量 <span class="text-danger">*</span></label>
+                                        <div class="d-flex align-items-center">
+                                            <span class="me-2">Empty</span>
+                                            <input type="range" class="form-range flex-grow-1" id="arrFuelLevel" min="1" max="8" step="1" value="4" required>
+                                            <span class="ms-2">Full</span>
+                                            <span class="badge bg-primary ms-3" id="fuelLevelDisplay">4/8</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 運転後酒気帯び確認 -->
+                                    <h5 class="border-bottom pb-2 mb-3 mt-4">
+                                        <i class="fas fa-exclamation-triangle text-warning"></i> 運転後 酒気帯び確認
+                                    </h5>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">確認者区分 <span class="text-danger">*</span></label>
+                                            <select class="form-select" id="arrAfterCheckerType" required>
+                                                <option value="">選択してください</option>
+                                                <option value="安全運転管理者">安全運転管理者</option>
+                                                <option value="副安全運転管理者">副安全運転管理者</option>
+                                                <option value="運行管理者">運行管理者</option>
+                                                <option value="上記以外">上記以外</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">確認者氏名 <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" id="arrAfterCheckerName" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-4">
+                                            <label class="form-label">確認方法 <span class="text-danger">*</span></label>
+                                            <select class="form-select" id="arrAfterCheckMethod" required>
+                                                <option value="">選択</option>
+                                                <option value="対面">対面</option>
+                                                <option value="電話等">電話等</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">酒気帯びの有無 <span class="text-danger">*</span></label>
+                                            <select class="form-select" id="arrAfterAlcoholPresence" required>
+                                                <option value="">選択</option>
+                                                <option value="無">無</option>
+                                                <option value="有">有</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">検知器数値 (mg/l) <span class="text-danger">*</span></label>
+                                            <input type="number" class="form-control" id="arrAfterAlcoholValue" step="0.01" min="0" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 特記事項 -->
+                                    <div class="mb-3">
+                                        <label class="form-label">特記事項（運行において異常が認められた箇所・気づいたこと）</label>
+                                        <textarea class="form-control" id="arrNotes" rows="3"></textarea>
+                                    </div>
+                                    
+                                    <div class="d-grid">
+                                        <button type="submit" class="btn btn-danger btn-lg">
+                                            <i class="fas fa-save"></i> 帰着記録を登録
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 運行履歴 -->
+            <div class="tab-pane fade" id="history">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <i class="fas fa-history"></i> 運行履歴
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted text-center">運行履歴機能は開発中です</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/driving-record.js"></script>
+</body>
+</html>
