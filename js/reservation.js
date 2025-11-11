@@ -50,19 +50,11 @@ async function searchReservations() {
     showLoading();
     
     try {
-        // 日付フォーマットを統一（YYYY/MM/DD）
         const formattedDate = normalizeDate(selectedDate);
-        
-        console.log('検索日付:', formattedDate); // デバッグ用
-        
         const result = await apiGet('getReservations', { date: formattedDate });
-        
-        console.log('API結果:', result); // デバッグ用
         
         if (result.success) {
             currentReservations = result.data;
-            
-            console.log('取得した予約数:', currentReservations.length); // デバッグ用
             
             // 車両種別でフィルタ
             let filteredReservations = currentReservations;
