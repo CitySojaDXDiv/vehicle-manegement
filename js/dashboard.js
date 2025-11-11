@@ -209,6 +209,8 @@ function createCharts(vehicles, reservations) {
 function checkMaintenanceAlerts(vehicles) {
     const alertsDiv = document.getElementById('maintenanceAlerts');
     const today = new Date();
+    today.setHours(0, 0, 0, 0); // 時刻をリセット
+    
     const thirtyDaysLater = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
     
     const alerts = [];
@@ -217,28 +219,42 @@ function checkMaintenanceAlerts(vehicles) {
         // 車検期限チェック
         if (vehicle.inspectionDate) {
             const inspectionDate = new Date(vehicle.inspectionDate);
-            if (!isNaN(inspectionDate.getTime()) && inspectionDate <= thirtyDaysLater && inspectionDate >= today) {
-                const daysLeft = Math.ceil((inspectionDate - today) / (1000 * 60 * 60 * 24));
-                alerts.push({
-                    type: '車検',
-                    vehicle: vehicle.number,
-                    date: normalizeDate(vehicle.inspectionDate),
-                    daysLeft: daysLeft
-                });
+            inspectionDate.setHours(0, 0, 0, 0);
+            
+            if (!isNaN(inspectionDate.getTime())) {
+                let daysLeft = Math.ceil((inspectionDate - today) / (1000 * 60 * 60 * 24));
+                
+                // 30日以内または既に期限切れの場合に表示
+                if (daysLeft <= 30) {
+                    alerts.push({
+                        type: '車検',
+                        vehicle: vehicle.number,
+                        date: normalizeDate(vehicle.inspectionDate),
+                        daysLeft: daysLeft,
+                        isExpired: daysLeft < 0
+                    });
+                }
             }
         }
         
         // 点検期限チェック
         if (vehicle.maintenanceDate) {
             const maintenanceDate = new Date(vehicle.maintenanceDate);
-            if (!isNaN(maintenanceDate.getTime()) && maintenanceDate <= thirtyDaysLater && maintenanceDate >= today) {
-                const daysLeft = Math.ceil((maintenanceDate - today) / (1000 * 60 * 60 * 24));
-                alerts.push({
-                    type: '点検',
-                    vehicle: vehicle.number,
-                    date: normalizeDate(vehicle.maintenanceDate),
-                    daysLeft: daysLeft
-                });
+            maintenanceDate.setHours(0, 0, 0, 0);
+            
+            if (!isNaN(maintenanceDate.getTime())) {
+                let daysLeft = Math.ceil((maintenanceDate - today) / (1000 * 60 * 60 * 24));
+                
+                // 30日以内または既に期限切れの場合に表示
+                if (daysLeft <= 30) {
+                    alerts.push({
+                        type: '点検',
+                        vehicle: vehicle.number,
+                        date: normalizeDate(vehicle.maintenanceDate),
+                        daysLeft: daysLeft,
+                        isExpired: daysLeft < 0
+                    });
+                }
             }
         }
     });
@@ -248,12 +264,27 @@ function checkMaintenanceAlerts(vehicles) {
         return;
     }
     
+    // 期限切れを先に表示
+    alerts.sort((a, b) => a.daysLeft - b.daysLeft);
+    
     alertsDiv.innerHTML = alerts.map(alert => {
-        const urgencyClass = alert.daysLeft <= 7 ? 'danger' : 'warning';
+        let urgencyClass, message;
+        
+        if (alert.isExpired) {
+            urgencyClass = 'danger';
+            message = `<strong>車両 ${alert.vehicle}</strong> の${alert.type}期限が<strong>${Math.abs(alert.daysLeft)}日前</strong>（${alert.date}）に<strong class="text-danger">切れています！</strong>`;
+        } else if (alert.daysLeft <= 7) {
+            urgencyClass = 'danger';
+            message = `<strong>車両 ${alert.vehicle}</strong> の${alert.type}期限が<strong>${alert.daysLeft}日後</strong>（${alert.date}）に迫っています`;
+        } else {
+            urgencyClass = 'warning';
+            message = `<strong>車両 ${alert.vehicle}</strong> の${alert.type}期限が<strong>${alert.daysLeft}日後</strong>（${alert.date}）に迫っています`;
+        }
+        
         return `
             <div class="alert alert-${urgencyClass} mb-2">
                 <i class="fas fa-exclamation-triangle"></i>
-                <strong>車両 ${alert.vehicle}</strong> の${alert.type}期限が<strong>${alert.daysLeft}日後</strong>（${alert.date}）に迫っています
+                ${message}
             </div>
         `;
     }).join('');
