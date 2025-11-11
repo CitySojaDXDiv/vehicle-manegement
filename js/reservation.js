@@ -50,7 +50,10 @@ async function searchReservations() {
     showLoading();
     
     try {
-        const result = await apiGet('getReservations', { date: selectedDate });
+        // 日付フォーマットを統一（YYYY/MM/DD）
+        const formattedDate = selectedDate.replace(/-/g, '/');
+        
+        const result = await apiGet('getReservations', { date: formattedDate });
         
         if (result.success) {
             currentReservations = result.data;
@@ -185,7 +188,7 @@ async function handleFormSubmit(e) {
     
     const formData = {
         vehicleId: parseInt(document.getElementById('vehicleSelect').value),
-        date: document.getElementById('reservationDate').value,
+        date: document.getElementById('reservationDate').value.replace(/-/g, '/'),
         startTime: document.getElementById('startTime').value,
         endTime: document.getElementById('endTime').value,
         userName: document.getElementById('userName').value,
@@ -195,10 +198,31 @@ async function handleFormSubmit(e) {
         passengers: parseInt(document.getElementById('passengers').value)
     };
     
+    // 時刻の妥当性チェック
+    if (formData.startTime >= formData.endTime) {
+        showAlert('終了時刻は開始時刻より後に設定してください', 'danger');
+        return;
+    }
+    
     // 定員チェック
     const selectedVehicle = allVehicles.find(v => v.id === formData.vehicleId);
     if (formData.passengers > selectedVehicle.capacity) {
         showAlert(`乗車人員が定員（${selectedVehicle.capacity}名）を超えています`, 'danger');
+        return;
+    }
+    
+    // 重複チェック
+    const isDuplicate = currentReservations.some(res => {
+        if (res.vehicleId !== formData.vehicleId) return false;
+        if (res.status === 'キャンセル') return false;
+        if (res.date !== formData.date) return false;
+        
+        // 時間重複チェック
+        return !(formData.endTime <= res.startTime || formData.startTime >= res.endTime);
+    });
+    
+    if (isDuplicate) {
+        showAlert('選択した時間帯は既に予約されています', 'danger');
         return;
     }
     
@@ -210,7 +234,10 @@ async function handleFormSubmit(e) {
         if (result.success) {
             showAlert('予約を登録しました', 'success');
             resetForm();
-            searchReservations();
+            
+            // 予約一覧を自動更新
+            document.getElementById('selectedDate').value = formData.date.replace(/\//g, '-');
+            await searchReservations();
         } else {
             showAlert('予約の登録に失敗しました', 'danger');
         }
@@ -226,6 +253,12 @@ async function handleFormSubmit(e) {
 function showNewReservationForm() {
     resetForm();
     document.getElementById('formTitle').textContent = '新規予約';
+    
+    // フォームエリアまでスクロール（スマホ対応）
+    document.getElementById('reservationForm').scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+    });
 }
 
 // フォームリセット

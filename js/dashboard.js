@@ -8,10 +8,10 @@ async function loadDashboard() {
     showLoading();
     
     try {
-        // 各種データ取得
-        const [vehicles, reservations] = await Promise.all([
+        const [vehicles, reservations, drivingRecords] = await Promise.all([
             apiGet('getVehicles'),
-            apiGet('getReservations')
+            apiGet('getReservations'),
+            apiGet('getDrivingRecords') // 追加
         ]);
         
         if (vehicles.success && reservations.success) {
@@ -19,6 +19,11 @@ async function loadDashboard() {
             updateTodayReservations(reservations.data, vehicles.data);
             createCharts(vehicles.data, reservations.data);
             checkMaintenanceAlerts(vehicles.data);
+            
+            // 運行記録表示を追加
+            if (drivingRecords.success) {
+                updateRecentDrivingRecords(drivingRecords.data, vehicles.data);
+            }
         }
     } catch (error) {
         console.error('Dashboard load error:', error);
@@ -26,6 +31,31 @@ async function loadDashboard() {
     } finally {
         hideLoading();
     }
+}
+
+// 直近の運行記録表示（新規追加）
+function updateRecentDrivingRecords(records, vehicles) {
+    const tbody = document.getElementById('recentDrivingRecordsTable');
+    
+    if (!records || records.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">運行記録がありません</td></tr>';
+        return;
+    }
+    
+    // 最新5件を表示
+    const recentRecords = records.slice(-5).reverse();
+    
+    tbody.innerHTML = recentRecords.map(record => {
+        const vehicle = vehicles.find(v => v.id === record.vehicleId);
+        return `
+            <tr>
+                <td>${record.date}</td>
+                <td><span class="badge" style="background-color: ${getVehicleTypeColor(vehicle.type)}">${vehicle.number}</span></td>
+                <td>${record.distance || 0} km</td>
+                <td>${record.driverName}</td>
+            </tr>
+        `;
+    }).join('');
 }
 
 // サマリーカード更新
@@ -51,7 +81,7 @@ function updateSummaryCards(vehicles, reservations) {
 function updateTodayReservations(reservations, vehicles) {
     const today = formatDate(new Date());
     const todayReservations = reservations.filter(r => 
-        formatDate(r.date) === today && r.status !== 'キャンセル'
+        r.date === today && r.status !== 'キャンセル'
     );
     
     const tbody = document.getElementById('todayReservationsTable');
@@ -63,10 +93,14 @@ function updateTodayReservations(reservations, vehicles) {
     
     tbody.innerHTML = todayReservations.map(res => {
         const vehicle = vehicles.find(v => v.id === res.vehicleId);
+        // 時刻フォーマット修正
+        const startTime = typeof res.startTime === 'string' ? res.startTime : formatTime(res.startTime);
+        const endTime = typeof res.endTime === 'string' ? res.endTime : formatTime(res.endTime);
+        
         return `
             <tr>
                 <td><span class="badge" style="background-color: ${getVehicleTypeColor(vehicle.type)}">${vehicle.number}</span></td>
-                <td>${res.startTime} - ${res.endTime}</td>
+                <td>${startTime} - ${endTime}</td>
                 <td>${res.userName}</td>
                 <td>${res.destination}</td>
             </tr>

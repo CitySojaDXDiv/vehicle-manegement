@@ -65,11 +65,10 @@ function populateVehicleSelects() {
     });
 }
 
-// 出発時フォーム送信
+// 出発時フォーム送信（修正版）
 async function handleDepartureSubmit(e) {
     e.preventDefault();
     
-    // 酒気帯び確認チェック
     const alcoholPresence = document.getElementById('depBeforeAlcoholPresence').value;
     const alcoholValue = parseFloat(document.getElementById('depBeforeAlcoholValue').value);
     
@@ -79,7 +78,6 @@ async function handleDepartureSubmit(e) {
         }
     }
     
-    // 出発データを一時保存（帰着時に使用）
     departureData = {
         vehicleId: parseInt(document.getElementById('depVehicle').value),
         date: document.getElementById('depDate').value,
@@ -91,29 +89,26 @@ async function handleDepartureSubmit(e) {
         purpose: document.getElementById('depPurpose').value,
         passengers: parseInt(document.getElementById('depPassengers').value),
         driverName: document.getElementById('depDriver').value,
-        beforeCheckerType: document.getElementById('depBeforeCheckerType').value,
-        beforeCheckerName: document.getElementById('depBeforeCheckerName').value,
+        beforeCheckType: document.getElementById('depBeforeCheckerType').value,
+        beforeCheckerName: '', // 削除
         beforeCheckMethod: document.getElementById('depBeforeCheckMethod').value,
         beforeAlcoholPresence: alcoholPresence,
         beforeAlcoholValue: alcoholValue
     };
     
-    // LocalStorageに保存
     localStorage.setItem('departureData', JSON.stringify(departureData));
     
     showAlert('出発記録を保存しました。帰着時に記録を完成させてください。', 'success');
     
-    // フォームをリセット
     document.getElementById('departureForm').reset();
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('depDate').value = today;
 }
 
-// 帰着時フォーム送信
+// 帰着時フォーム送信（修正版）
 async function handleArrivalSubmit(e) {
     e.preventDefault();
     
-    // 出発データを取得
     const savedDepartureData = localStorage.getItem('departureData');
     if (!savedDepartureData) {
         showAlert('出発記録が見つかりません。先に出発時入力を行ってください。', 'warning');
@@ -122,7 +117,6 @@ async function handleArrivalSubmit(e) {
     
     const departure = JSON.parse(savedDepartureData);
     
-    // 酒気帯び確認チェック
     const alcoholPresence = document.getElementById('arrAfterAlcoholPresence').value;
     const alcoholValue = parseFloat(document.getElementById('arrAfterAlcoholValue').value);
     
@@ -130,7 +124,6 @@ async function handleArrivalSubmit(e) {
         showAlert('運転後に酒気帯びが検知されています。適切な対応を行ってください。', 'danger');
     }
     
-    // 完全な運行記録データを作成
     const fullRecord = {
         ...departure,
         endTime: document.getElementById('arrTime').value,
@@ -140,14 +133,14 @@ async function handleArrivalSubmit(e) {
         oil: parseFloat(document.getElementById('arrOil').value) || 0,
         noRefuel: document.getElementById('arrNoRefuel').checked,
         fuelLevel: parseInt(document.getElementById('arrFuelLevel').value),
-        afterCheckerType: document.getElementById('arrAfterCheckerType').value,
-        afterCheckerName: document.getElementById('arrAfterCheckerName').value,
+        afterCheckType: document.getElementById('arrAfterCheckerType').value,
+        afterCheckerName: '', // 削除
         afterCheckMethod: document.getElementById('arrAfterCheckMethod').value,
         afterAlcoholPresence: alcoholPresence,
         afterAlcoholValue: alcoholValue,
         notes: document.getElementById('arrNotes').value,
         dayOfWeek: getDayOfWeek(departure.date),
-        reservationId: null // 予約との紐付けは後で実装
+        reservationId: null
     };
     
     showLoading();
@@ -157,11 +150,7 @@ async function handleArrivalSubmit(e) {
         
         if (result.success) {
             showAlert('運行記録を登録しました', 'success');
-            
-            // LocalStorageをクリア
             localStorage.removeItem('departureData');
-            
-            // フォームをリセット
             document.getElementById('arrivalForm').reset();
             document.getElementById('arrFuelLevel').value = 4;
             updateFuelLevelDisplay();
